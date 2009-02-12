@@ -4,7 +4,9 @@ var noun_type_file_pattern = {
     var suggestions  = [CmdUtils.makeSugg(text)];
     var exts = SaveAll.uniqueExtensions();
     for (i in exts) {
-      suggestions.push(CmdUtils.makeSugg(exts[i] + "$"));
+      if (exts[i].match(text)) {
+        suggestions.push(CmdUtils.makeSugg(exts[i] + "$"));
+      }
     }
     return suggestions;
   }
@@ -80,6 +82,7 @@ var SaveAll = {
   
   extFromURL: function(url) {
     url = url.replace(/^https?:\/\//, "");
+    url = url.replace(/\?.*$/, "");
     var m = url.match(/\/.*\.([^\.]*)$/);
     if (m) return m[1];
     else   return false;
