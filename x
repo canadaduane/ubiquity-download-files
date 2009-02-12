@@ -1,3 +1,17 @@
+/*
+  Ubiquity Command: download-files [regexp pattern] to [folder]
+  Author: Duane Johnson
+  Email: duane.johnson@gmail.com
+  
+  Description: Downloads files matching the regular expression pattern to a folder.
+  
+  Changes:
+    2009-02-12
+      - Removed duplicate filenames in preview list.
+      - Added folder.png icon when optional "to [folder]" is given.
+      - Changed command from "save-all" to "download-files".
+*/
+
 var noun_type_file_pattern = {
   _name: "file pattern",
   suggest: function( text, html ) {
@@ -122,8 +136,6 @@ var SaveAll = {
   }
 }
 
-
-/* This is a template command */
 CmdUtils.CreateCommand({
   name: "download-files",
   icon: "http://inquirylabs.com/downloads/download.png",
