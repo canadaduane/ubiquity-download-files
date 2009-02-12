@@ -1,7 +1,11 @@
 var noun_type_file_pattern = {
   _name: "file pattern",
   suggest: function( text, html ) {
-    var suggestions  = [CmdUtils.makeSugg(text), CmdUtils.makeSugg("*.png")];
+    var suggestions  = [CmdUtils.makeSugg(text)];
+    var exts = SaveAll.uniqueExtensions();
+    for (i in exts) {
+      suggestions.push(CmdUtils.makeSugg(exts[i] + "$"));
+    }
     return suggestions;
   }
 }
@@ -39,9 +43,10 @@ var SaveAll = {
   },
   
   matchFiles: function(pattern) {
+    if (!pattern) pattern = "";
     var doc = Application.activeWindow.activeTab.document;
     var files = [];
-    files = files.concat(jQuery("a", doc.body).map(function() { return this.getAttribute("href"); }).get());
+    files = files.concat(jQuery("a,link", doc.body).map(function() { return this.getAttribute("href"); }).get());
     files = files.concat(jQuery("img,script,iframe", doc.body).map(function() { return this.getAttribute("src"); }).get());
     var matched = [];
     try {
@@ -55,6 +60,29 @@ var SaveAll = {
       
     }
     return matched;
+  },
+    
+  uniqueExtensions: function() {
+    var files = SaveAll.matchFiles();
+    // Use an object's keys to maintain a unique list
+    var extSet = {};
+    for (i in files) {
+      if (files[i]) {
+        var ext = SaveAll.extFromURL(files[i]);
+        if (ext) extSet[ext] = true;
+      }
+    }
+    // Turn the object into an array
+    var exts = [];
+    for (j in extSet) exts.push(j);
+    return exts;
+  },
+  
+  extFromURL: function(url) {
+    url = url.replace(/^https?:\/\//, "");
+    var m = url.match(/\/.*\.([^\.]*)$/);
+    if (m) return m[1];
+    else   return false;
   },
   
   fileFromURL: function(url) {
