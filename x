@@ -121,27 +121,33 @@ var SaveAll = {
 
 /* This is a template command */
 CmdUtils.CreateCommand({
-  name: "save-all",
+  name: "download-files",
   icon: "http://inquirylabs.com/downloads/download.png",
   homepage: "http://inquirylabs.com/",
   author: { name: "Duane Johnson", email: "duane.johnson@gmail.com"},
   license: "MIT",
-  description: "Downloads all files of the given pattern to your desktop or other location.",
+  description: "Downloads all files of the given pattern to your computer.",
   help: "e.g. save-all *.png ~/Desktop/Images",
   takes: {"pattern": noun_type_file_pattern},
   modifiers: {"to": noun_arb_text},
   preview: function( pblock, pattern, mods ) {
-    var template = "<h1>Download ${pattern}</h1><ul>${list}</ul>";
-    var matchList = "";
-    fileUrls = SaveAll.matchFiles(pattern.text);
-    for (i in fileUrls) {
-      matchList += "<li>" + fileUrls[i] + "</li>";
+    if (pattern.text) {
+      var template = "<p>Download ${pattern}${dest}</p><ul>${list}</ul>";
+      var matchList = "";
+      fileUrls = SaveAll.matchFiles(pattern.text);
+      for (i in fileUrls) {
+        matchList += "<li>" + fileUrls[i] + "</li>";
+      }
+      var folderHtml = "<p><img src='http://inquirylabs.com/downloads/folder.png' align='absmiddle' /> " + mods["to"].html + "</p>";
+      pblock.innerHTML = CmdUtils.renderTemplate(template,
+        {
+          "pattern": pattern.html,
+          "dest": mods["to"].text ? folderHtml : "",
+          "list": matchList
+        });
+    } else {
+      pblock.innerHTML = "<p>Downloads all files matching the given pattern.</p>";
     }
-    pblock.innerHTML = CmdUtils.renderTemplate(template,
-      {
-        "pattern": pattern.html,
-        "list": matchList
-      });
   },
   execute: function(pattern, mods) {
     var folder = SaveAll.getFolder(mods["to"].text);
