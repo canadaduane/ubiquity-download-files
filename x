@@ -50,18 +50,22 @@ var SaveAll = {
     var files = [];
     files = files.concat(jQuery("a,link", doc.body).map(function() { return this.getAttribute("href"); }).get());
     files = files.concat(jQuery("img,script,iframe", doc.body).map(function() { return this.getAttribute("src"); }).get());
-    var matched = [];
+    var matchedSet = {};
     try {
       for (i in files) {
         var file = files[i];
         if (file.match(pattern)) {
-          matched.push(file);
+          matchedSet[file] = true;
         }
       }
     } catch(e) {
       
     }
-    return matched;
+    var matchedList = [];
+    for (file in matchedSet) {
+      matchedList.push(file);
+    }
+    return matchedList;
   },
     
   uniqueExtensions: function() {
@@ -132,7 +136,7 @@ CmdUtils.CreateCommand({
   modifiers: {"to": noun_arb_text},
   preview: function( pblock, pattern, mods ) {
     if (pattern.text) {
-      var template = "<p>Download ${pattern}${dest}</p><ul>${list}</ul>";
+      var template = "<p>Download files matching /${pattern}/${dest}</p><ul>${list}</ul>";
       var matchList = "";
       fileUrls = SaveAll.matchFiles(pattern.text);
       for (i in fileUrls) {
