@@ -7,13 +7,15 @@
   
   Changes:
     2009-02-12
+      - Added comments / documentation
       - Added noun_type_local_directory
       - Removed duplicate filenames in preview list.
       - Added folder.png icon when optional "to [folder]" is given.
       - Changed command from "save-all" to "download-files".
 */
 
-var noun_type_file_pattern = {
+// Suggests file extensions from the current page, e.g. "png$" if there is a png image, or "js$" if there are javascript files.
+var noun_type_file_extension_from_page = {
   _name: "file pattern",
   suggest: function( text, html ) {
     var suggestions  = [CmdUtils.makeSugg(text)];
@@ -27,15 +29,23 @@ var noun_type_file_pattern = {
   }
 }
 
+// Suggests autocompletion for directories on the local filesystem.  For example, if you type ~/Li<tab> on a Mac, then
+// it will find the "Library" subdirectory in your home directory and (supposing your username is 'duane'), it will complete
+// the noun as "/Users/duane/Library".
 var noun_type_local_directory = {
   _name: "directory on local system",
   suggest: function( text, html ) {
     var suggestions = [];
-
+    
+    // The tilde is an illegal directory name by itself, but it is legal with a trailing slash
     if (text == "~") text = "~/";
+    
+    // Break the directory up into everything before and including the slash, and everything after the last slash
     var parts = text.match(/^(.*\/)([^\/]*)$/);
     if (parts) {
+      // The first part is the path
       var path = parts[1];
+      // Everything after the last slash becomes a "possible" completion, depending on subdirectory names
       var possible = parts[2];
       
       try {
@@ -43,6 +53,7 @@ var noun_type_local_directory = {
           classes["@mozilla.org/file/local;1"].
           createInstance(Components.interfaces.nsILocalFile);
         folder.initWithPath(path);
+        
         if (folder.isDirectory()) {
           var enum = folder.directoryEntries;
           while (enum.hasMoreElements()) {
@@ -69,6 +80,8 @@ var noun_type_local_directory = {
 }
 
 var SaveAll = {
+  // Pass in a "preferred" folder.  If null or undefined, getFolder will let the user pick a folder.
+  // Returns false on failure (e.g. the user cancelled), or the nsIFile object on success.
   getFolder: function(preferred) {
     var path = preferred;
     var folder;
@@ -100,6 +113,8 @@ var SaveAll = {
     }
   },
   
+  // Looks for 'pattern' within the current page's HTML.  For example, searches 'a' tags and 'link' tags for 'href'
+  // attributes, and searches 'img', 'script', and 'iframe' tags for 'src' attributes.  A list of matching URLs is returned.
   matchFiles: function(pattern) {
     if (!pattern) pattern = "";
     var doc = Application.activeWindow.activeTab.document;
@@ -123,7 +138,8 @@ var SaveAll = {
     }
     return matchedList;
   },
-    
+  
+  // Finds unique file extensions from the list of all URLs produced from matchFiles().  Returns the list, e.g. ["gif", "js"]
   uniqueExtensions: function() {
     var files = SaveAll.matchFiles();
     // Use an object's keys to maintain a unique list
@@ -140,6 +156,7 @@ var SaveAll = {
     return exts;
   },
   
+  // Given a url string, returns a file extension if possible (e.g. "gif" or "jpg")
   extFromURL: function(url) {
     url = url.replace(/^https?:\/\//, "");
     url = url.replace(/\?.*$/, "");
@@ -148,12 +165,14 @@ var SaveAll = {
     else   return false;
   },
   
+  // Given a url string, returns the "leaf" part of the path, e.g. "http://mysite.com/files/blah.jpg" becomes "blah.jpg"
   fileFromURL: function(url) {
     var m = url.match(/\/([^\/]*)$/);
     if (m) return m[1];
     else   return url;
   },
   
+  // Given a url string and an nsIFile 'folder' object that points to a local directory, download the thing to the folder.
   saveFile: function(file_url, folder) {
     try {
       var doc = Application.activeWindow.activeTab.document;
@@ -186,7 +205,7 @@ CmdUtils.CreateCommand({
   license: "MIT",
   description: "Downloads all files of the given pattern to your computer.",
   help: "e.g. save-all *.png ~/Desktop/Images",
-  takes: {"pattern": noun_type_file_pattern},
+  takes: {"pattern": noun_type_file_extension_from_page},
   modifiers: {"to": noun_type_local_directory},
   preview: function( pblock, pattern, mods ) {
     if (pattern.text) {
