@@ -7,6 +7,7 @@
   
   Changes:
     2009-02-12
+      - Improved auto-suggestions
       - Added comments / documentation
       - Added noun_type_local_directory
       - Removed duplicate filenames in preview list.
@@ -14,17 +15,23 @@
       - Changed command from "save-all" to "download-files".
 */
 
+var use_file_extension = false;
+
 // Suggests file extensions from the current page, e.g. "png$" if there is a png image, or "js$" if there are javascript files.
 var noun_type_file_extension_from_page = {
   _name: "file pattern",
   suggest: function( text, html ) {
     var suggestions  = [CmdUtils.makeSugg(text)];
-    var exts = SaveAll.uniqueExtensions();
-    for (i in exts) {
-      if (exts[i].match(text)) {
-        suggestions.push(CmdUtils.makeSugg(exts[i] + "$"));
+    
+    if (!use_file_extension) {
+      var exts = SaveAll.uniqueExtensions();
+      for (i in exts) {
+        if (exts[i].match(text)) {
+          suggestions.push(CmdUtils.makeSugg(exts[i] + "$"));
+        }
       }
     }
+    
     return suggestions;
   }
 }
@@ -40,6 +47,9 @@ var noun_type_local_directory = {
     // The tilde is an illegal directory name by itself, but it is legal with a trailing slash
     if (text == "~") text = "~/";
     
+    // Always accept whatever the user types, even if it's an invalid directory
+    suggestions.push(CmdUtils.makeSugg(text));
+
     // Break the directory up into everything before and including the slash, and everything after the last slash
     var parts = text.match(/^(.*\/)([^\/]*)$/);
     if (parts) {
@@ -65,7 +75,8 @@ var noun_type_local_directory = {
               var match = dirEntry.path.match(/\/([^\/]*)$/);
               // CmdUtils.log(possible, match);
               if (match && match[1].indexOf(possible) == 0) {
-                suggestions.push(CmdUtils.makeSugg(dirEntry.path));
+                if (dirEntry.path != text) // Don't suggest twice the same thing they've explicitly typed
+                  suggestions.push(CmdUtils.makeSugg(dirEntry.path));
               }
             }
           }
@@ -80,6 +91,21 @@ var noun_type_local_directory = {
 }
 
 var SaveAll = {
+  folderExists: function(path) {
+    try {
+      var folder = Components.
+        classes["@mozilla.org/file/local;1"].
+        createInstance(Components.interfaces.nsILocalFile);
+      folder.initWithPath(path);
+      if (!folder.isDirectory()) {
+        return false;
+      }
+      return true;
+    } catch(e) {
+      return false;
+    }
+  },
+  
   // Pass in a "preferred" folder.  If null or undefined, getFolder will let the user pick a folder.
   // Returns false on failure (e.g. the user cancelled), or the nsIFile object on success.
   getFolder: function(preferred) {
@@ -101,7 +127,7 @@ var SaveAll = {
       var folder = Components.
         classes["@mozilla.org/file/local;1"].
         createInstance(Components.interfaces.nsILocalFile);
-        folder.initWithPath(path);
+      folder.initWithPath(path);
       if (!folder.isDirectory()) {
         err("The destination is not a folder");
         return false;
@@ -209,17 +235,26 @@ CmdUtils.CreateCommand({
   modifiers: {"to": noun_type_local_directory},
   preview: function( pblock, pattern, mods ) {
     if (pattern.text) {
+      var path = mods["to"].text;
+      
+      // Hackish way of telling our noun_type_file_extension_from_page to stop suggesting things once a folder is specified
+      if (path) use_file_extension = true;
+      else      use_file_extension = false;
+      
       var template = "<p>Download files matching /${pattern}/${dest}</p><ul'>${list}</ul>";
       var matchList = "";
       fileUrls = SaveAll.matchFiles(pattern.text);
       for (i in fileUrls) {
         matchList += "<li>" + fileUrls[i] + "</li>";
       }
-      var folderHtml = "<p><img src='http://inquirylabs.com/downloads/folder.png' align='absmiddle' /> " + mods["to"].html + "</p>";
+
+      var folderHtml =
+        "<p><img src='http://inquirylabs.com/downloads/folder" + (SaveAll.folderExists(path) ? "" : "-x") + ".png'" +
+        " align='absmiddle' /> " + mods["to"].html + "</p>";
       pblock.innerHTML = CmdUtils.renderTemplate(template,
         {
           "pattern": pattern.html,
-          "dest": mods["to"].text ? folderHtml : "",
+          "dest": path ? folderHtml : "",
           "list": matchList
         });
     } else {
