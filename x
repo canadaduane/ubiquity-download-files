@@ -7,6 +7,7 @@
   
   Changes:
     2009-02-12
+      - Added noun_type_local_directory
       - Removed duplicate filenames in preview list.
       - Added folder.png icon when optional "to [folder]" is given.
       - Changed command from "save-all" to "download-files".
@@ -22,6 +23,47 @@ var noun_type_file_pattern = {
         suggestions.push(CmdUtils.makeSugg(exts[i] + "$"));
       }
     }
+    return suggestions;
+  }
+}
+
+var noun_type_local_directory = {
+  _name: "directory on local system",
+  suggest: function( text, html ) {
+    var suggestions = [];
+
+    if (text == "~") text = "~/";
+    var parts = text.match(/^(.*\/)([^\/]*)$/);
+    if (parts) {
+      var path = parts[1];
+      var possible = parts[2];
+      
+      try {
+        var folder = Components.
+          classes["@mozilla.org/file/local;1"].
+          createInstance(Components.interfaces.nsILocalFile);
+        folder.initWithPath(path);
+        if (folder.isDirectory()) {
+          var enum = folder.directoryEntries;
+          while (enum.hasMoreElements()) {
+            var dirEntry = enum.getNext().QueryInterface(Components.interfaces.nsIFile);
+            // Need exists() here so we can ignore symlinks to files that no longer exist
+            if (dirEntry.exists() && dirEntry.isDirectory()) {
+              // Does this sub-directory match the 'possible' substring?
+              // To test, get the part of the path after the last '/' and compare with 'possible'
+              var match = dirEntry.path.match(/\/([^\/]*)$/);
+              // CmdUtils.log(possible, match);
+              if (match && match[1].indexOf(possible) == 0) {
+                suggestions.push(CmdUtils.makeSugg(dirEntry.path));
+              }
+            }
+          }
+        }
+      } catch(e) {
+        // CmdUtils.log(e);
+      }
+    }
+    
     return suggestions;
   }
 }
@@ -145,10 +187,10 @@ CmdUtils.CreateCommand({
   description: "Downloads all files of the given pattern to your computer.",
   help: "e.g. save-all *.png ~/Desktop/Images",
   takes: {"pattern": noun_type_file_pattern},
-  modifiers: {"to": noun_arb_text},
+  modifiers: {"to": noun_type_local_directory},
   preview: function( pblock, pattern, mods ) {
     if (pattern.text) {
-      var template = "<p>Download files matching /${pattern}/${dest}</p><ul>${list}</ul>";
+      var template = "<p>Download files matching /${pattern}/${dest}</p><ul'>${list}</ul>";
       var matchList = "";
       fileUrls = SaveAll.matchFiles(pattern.text);
       for (i in fileUrls) {
