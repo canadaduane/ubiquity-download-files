@@ -6,6 +6,8 @@
   Description: Downloads files matching the regular expression pattern to a folder.
   
   Changes:
+    2009-02-14
+      - Use 'unescape' to preview URLs in case they are URL escaped
     2009-02-12
       - Improved auto-suggestions
       - Added comments / documentation
@@ -245,7 +247,7 @@ CmdUtils.CreateCommand({
       var matchList = "";
       fileUrls = SaveAll.matchFiles(pattern.text);
       for (i in fileUrls) {
-        matchList += "<li>" + fileUrls[i] + "</li>";
+        matchList += "<li>" + unescape(fileUrls[i]) + "</li>";
       }
 
       var folderHtml =
