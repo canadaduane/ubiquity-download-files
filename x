@@ -6,6 +6,8 @@
   Description: Downloads files matching the regular expression pattern to a folder.
   
   Changes:
+    2009-02-15
+      - Fixed example string to use 'download-files' instead of 'save-all'
     2009-02-14
       - Use 'unescape' to preview URLs in case they are URL escaped
     2009-02-12
@@ -232,7 +234,7 @@ CmdUtils.CreateCommand({
   author: { name: "Duane Johnson", email: "duane.johnson@gmail.com"},
   license: "MIT",
   description: "Downloads all files of the given pattern to your computer.",
-  help: "e.g. save-all *.png ~/Desktop/Images",
+  help: "e.g. download-files png$ ~/Desktop/Images",
   takes: {"pattern": noun_type_file_extension_from_page},
   modifiers: {"to": noun_type_local_directory},
   preview: function( pblock, pattern, mods ) {
