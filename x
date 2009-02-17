@@ -6,6 +6,8 @@
   Description: Downloads files matching the regular expression pattern to a folder.
   
   Changes:
+    2009-02-17
+      - Added gialloporpora's change to only display filenames instead of full URLs
     2009-02-15
       - Fixed example string to use 'download-files' instead of 'save-all'
     2009-02-14
@@ -246,11 +248,12 @@ CmdUtils.CreateCommand({
       else      use_file_extension = false;
       
       var template = "<p>Download files matching /${pattern}/${dest}</p><ul'>${list}</ul>";
-      var matchList = "";
+      var matchList ="<ul>";
       fileUrls = SaveAll.matchFiles(pattern.text);
       for (i in fileUrls) {
-        matchList += "<li>" + unescape(fileUrls[i]) + "</li>";
+        matchList += "<li>" + unescape( SaveAll.fileFromURL(fileUrls[i])) + "</li>"; /* I prefere to see only the file name and not the whole URL */
       }
+      matchList +="</ul>";
 
       var folderHtml =
         "<p><img src='http://inquirylabs.com/downloads/folder" + (SaveAll.folderExists(path) ? "" : "-x") + ".png'" +
