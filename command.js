@@ -4,21 +4,6 @@
   Email: duane.johnson@gmail.com
   
   Description: Downloads files matching the regular expression pattern to a folder.
-  
-  Changes:
-    2009-02-17
-      - Added gialloporpora's change to only display filenames instead of full URLs
-    2009-02-15
-      - Fixed example string to use 'download-files' instead of 'save-all'
-    2009-02-14
-      - Use 'unescape' to preview URLs in case they are URL escaped
-    2009-02-12
-      - Improved auto-suggestions
-      - Added comments / documentation
-      - Added noun_type_local_directory
-      - Removed duplicate filenames in preview list.
-      - Added folder.png icon when optional "to [folder]" is given.
-      - Changed command from "save-all" to "download-files".
 */
 
 var use_file_extension = false;
