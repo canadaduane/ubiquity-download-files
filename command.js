@@ -153,13 +153,13 @@ var DownloadFiles = {
   // Returns: A list of URLs matching the pattern.
   matchFiles: function(pattern) {
     if (!pattern) pattern = "";
-    var doc = Application.activeWindow.activeTab.document;
     var files = [];
     var i, j;
 
     var addFiles = function(doc) {
-      files = files.concat(jQuery("a,link", doc.body).map(function() { return this.getAttribute("href"); }).get());
-      files = files.concat(jQuery("img,script", doc.body).map(function() { return this.getAttribute("src"); }).get());
+      CmdUtils.log(doc);
+      files = files.concat(jQuery("a,link", doc.childNodes).map(function() { return this.getAttribute("href"); }).get());
+      files = files.concat(jQuery("img,script", doc.childNodes).map(function() { return this.getAttribute("src"); }).get());
       
       // Search contents within frames, if any
       jQuery("frame,iframe", doc.body).each(function() {
@@ -191,7 +191,7 @@ var DownloadFiles = {
     };
     
     // Recursively add files from the main document
-    addFiles(doc);
+    addFiles(Application.activeWindow.activeTab.document);
     
     // Only add files that match our 'pattern' criterion, adding matches to a Set so
     // we get just one of each result (no duplicates).
@@ -350,3 +350,4 @@ CmdUtils.CreateCommand({
     }
   }
 });
+

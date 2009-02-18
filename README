@@ -9,6 +9,7 @@ Description: Downloads files matching the regular expression pattern to a folder
 
 Changes:
   2009-02-17
+    - Fixed that items in the "head" section of the document were not being included (e.g. CSS files).
     - Added full search of all stylesheets (CSS) for rules that include url() resources.
     - Added recursive pattern matching into frames and iframes.
     - Fixed that a malformed regexp would cause a silent exception
