@@ -72,7 +72,6 @@ var noun_type_local_directory = {
               // Does this sub-directory match the 'possible' substring?
               // To test, get the part of the path after the last '/' and compare with 'possible'
               var match = dirEntry.path.match(/\/([^\/]*)$/);
-              // CmdUtils.log(possible, match);
               if (match && match[1].indexOf(possible) == 0) {
                 if (dirEntry.path != text) // Don't suggest twice the same thing they've explicitly typed
                   suggestions.push(CmdUtils.makeSugg(dirEntry.path));
@@ -171,21 +170,22 @@ var DownloadFiles = {
       // Search style sheets
       for (i = 0; i < doc.styleSheets.length; i++) {
         var sheet = doc.styleSheets[i];
-        var cssURI = IOService.newURI(sheet.href, null, null);
-        // Loop through each rule in each stylesheet
-        for (j = 0; j < sheet.cssRules.length; j++) {
-          var style = sheet.cssRules[j].cssText;
+        if (sheet.href) { // Apparently stylesheets can be null sometimes
+          var cssURI = IOService.newURI(sheet.href, null, null);
+          // Loop through each rule in each stylesheet
+          for (j = 0; j < sheet.cssRules.length; j++) {
+            var style = sheet.cssRules[j].cssText;
 
-          // Capture the url() portion of the rule
-          var match = style.match(/url\(([^\)]+)\)/);
-          if (match) {
-            var relativePath = match[1];
-            // Make sure the URI is relative to the CSS from which it was extracted
-            var imageURI = IOService.newURI(relativePath, null, cssURI);
-            files.push(imageURI.spec);
+            // Capture the url() portion of the rule
+            var match = style.match(/url\(([^\)]+)\)/);
+            if (match) {
+              var relativePath = match[1];
+              // Make sure the URI is relative to the CSS from which it was extracted
+              var imageURI = IOService.newURI(relativePath, null, cssURI);
+              files.push(imageURI.spec);
+            }
           }
         }
-        
       }
     };
     
@@ -349,4 +349,5 @@ CmdUtils.CreateCommand({
     }
   }
 });
+
 
