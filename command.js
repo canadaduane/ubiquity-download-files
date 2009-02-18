@@ -157,7 +157,6 @@ var DownloadFiles = {
     var i, j;
 
     var addFiles = function(doc) {
-      CmdUtils.log(doc);
       files = files.concat(jQuery("a,link", doc.childNodes).map(function() { return this.getAttribute("href"); }).get());
       files = files.concat(jQuery("img,script", doc.childNodes).map(function() { return this.getAttribute("src"); }).get());
       
