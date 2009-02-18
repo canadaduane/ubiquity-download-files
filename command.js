@@ -4,6 +4,8 @@
   Email: duane.johnson@gmail.com
   
   Description: Downloads files matching the regular expression pattern to a folder.
+  
+  See: http://github.com/canadaduane/ubiquity-download-files
 */
 
 var use_file_extension = false;
