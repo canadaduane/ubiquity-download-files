@@ -9,6 +9,7 @@ Description: Downloads files matching the regular expression pattern to a folder
 
 Changes:
   2009-02-17
+    - Added recursive pattern matching into frames and iframes.
     - Fixed that a malformed regexp would cause a silent exception
     - Improved messages when regular expression is malformed,
       and when there are no matches

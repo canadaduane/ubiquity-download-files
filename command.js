@@ -152,8 +152,21 @@ var DownloadFiles = {
     if (!pattern) pattern = "";
     var doc = Application.activeWindow.activeTab.document;
     var files = [];
-    files = files.concat(jQuery("a,link", doc.body).map(function() { return this.getAttribute("href"); }).get());
-    files = files.concat(jQuery("img,script,iframe", doc.body).map(function() { return this.getAttribute("src"); }).get());
+    var addFiles = function(docbody) {
+      files = files.concat(jQuery("a,link", docbody).map(function() { return this.getAttribute("href"); }).get());
+      files = files.concat(jQuery("img,script,iframe", docbody).map(function() { return this.getAttribute("src"); }).get());
+      
+      // Try to add contents from sub-frames as well
+      jQuery("frame,iframe", docbody).each(function() {
+        addFiles(this.contentDocument.body);
+      });
+    };
+    
+    // Recursively add files from the main document
+    addFiles(doc.body);
+    
+    // Only add files that match our 'pattern' criterion, adding matches to a Set so
+    // we get just one of each result (no duplicates).
     var matchedSet = {};
     for (i in files) {
       var file = files[i];
