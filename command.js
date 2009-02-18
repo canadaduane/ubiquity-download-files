@@ -145,25 +145,51 @@ var DownloadFiles = {
     }
   },
   
-  // Looks for 'pattern' within the current page's HTML.  For example, searches 'a' tags
-  // and 'link' tags for 'href' attributes, and searches 'img', 'script', and 'iframe'
-  // tags for 'src' attributes.  A list of matching URLs is returned.
+  // Looks for 'pattern' within the current page's HTML and any frames or iframes.
+  //   - Searches 'a' tags and 'link' tags for 'href' attributes;
+  //   - Searches 'img' and 'script' tags for 'src' attributes.
+  // Returns: A list of URLs matching the pattern.
   matchFiles: function(pattern) {
     if (!pattern) pattern = "";
     var doc = Application.activeWindow.activeTab.document;
     var files = [];
-    var addFiles = function(docbody) {
-      files = files.concat(jQuery("a,link", docbody).map(function() { return this.getAttribute("href"); }).get());
-      files = files.concat(jQuery("img,script,iframe", docbody).map(function() { return this.getAttribute("src"); }).get());
+    var i, j;
+
+    var addFiles = function(doc) {
+      files = files.concat(jQuery("a,link", doc.body).map(function() { return this.getAttribute("href"); }).get());
+      files = files.concat(jQuery("img,script", doc.body).map(function() { return this.getAttribute("src"); }).get());
       
-      // Try to add contents from sub-frames as well
-      jQuery("frame,iframe", docbody).each(function() {
-        addFiles(this.contentDocument.body);
+      // Search contents within frames, if any
+      jQuery("frame,iframe", doc.body).each(function() {
+        addFiles(this.contentDocument);
       });
+      
+      var IOService =
+        Components.classes["@mozilla.org/network/io-service;1"].
+        getService(Components.interfaces.nsIIOService);
+      // Search style sheets
+      for (i = 0; i < doc.styleSheets.length; i++) {
+        var sheet = doc.styleSheets[i];
+        var cssURI = IOService.newURI(sheet.href, null, null);
+        // Loop through each rule in each stylesheet
+        for (j = 0; j < sheet.cssRules.length; j++) {
+          var style = sheet.cssRules[j].cssText;
+
+          // Capture the url() portion of the rule
+          var match = style.match(/url\(([^\)]+)\)/);
+          if (match) {
+            var relativePath = match[1];
+            // Make sure the URI is relative to the CSS from which it was extracted
+            var imageURI = IOService.newURI(relativePath, null, cssURI);
+            files.push(imageURI.spec);
+          }
+        }
+        
+      }
     };
     
     // Recursively add files from the main document
-    addFiles(doc.body);
+    addFiles(doc);
     
     // Only add files that match our 'pattern' criterion, adding matches to a Set so
     // we get just one of each result (no duplicates).
@@ -304,9 +330,9 @@ CmdUtils.CreateCommand({
   execute: function(pattern, mods) {
     var folder = DownloadFiles.getFolder(mods["to"].text);
     if (folder) {
-      // displayMessage("Downloading to " + folder.path);
       fileUrls = DownloadFiles.matchFiles(pattern.text);
-      // CmdUtils.log("Matched files: ", fileUrls);
+      displayMessage("Downloading " + fileUrls.length + " files to " + folder.path);
+
       var succeeded = 0;
       for (i in fileUrls) {
         if (DownloadFiles.downloadFile(fileUrls[i], folder)) succeeded += 1;
