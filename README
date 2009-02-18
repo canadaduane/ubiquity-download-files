@@ -9,6 +9,12 @@ Description: Downloads files matching the regular expression pattern to a folder
 
 Changes:
   2009-02-17
+    - Fixed that a malformed regexp would cause a silent exception
+    - Improved messages when regular expression is malformed,
+      and when there are no matches
+    - Added greyed-out urls next to filenames
+    - Renamed 'SaveAll' object to 'DownloadFiles'
+    - Formatted comments
     - Added gialloporpora's change to only display filenames instead of full URLs
   2009-02-15
     - Fixed example string to use 'download-files' instead of 'save-all'

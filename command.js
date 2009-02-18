@@ -7,17 +7,19 @@
 */
 
 var use_file_extension = false;
+var poorly_formed_regexp = false;
 
-// Suggests file extensions from the current page, e.g. "png$" if there is a png image, or "js$" if there are javascript files.
+// Suggests file extensions from the current page, e.g. "png$" if there is a png image,
+// or "js$" if there are javascript files.
 var noun_type_file_extension_from_page = {
   _name: "file pattern",
   suggest: function( text, html ) {
     var suggestions  = [CmdUtils.makeSugg(text)];
     
     if (!use_file_extension) {
-      var exts = SaveAll.uniqueExtensions();
+      var exts = DownloadFiles.uniqueExtensions();
       for (i in exts) {
-        if (exts[i].match(text)) {
+        if (exts[i].indexOf(text) >= 0) {
           suggestions.push(CmdUtils.makeSugg(exts[i] + "$"));
         }
       }
@@ -27,26 +29,30 @@ var noun_type_file_extension_from_page = {
   }
 }
 
-// Suggests autocompletion for directories on the local filesystem.  For example, if you type ~/Li<tab> on a Mac, then
-// it will find the "Library" subdirectory in your home directory and (supposing your username is 'duane'), it will complete
-// the noun as "/Users/duane/Library".
+// Suggests autocompletion for directories on the local filesystem.  For example, if
+// you type ~/Li<tab> on a Mac, then it will find the "Library" subdirectory in your
+// home directory and (supposing your username is 'duane'), it will complete the noun
+// as "/Users/duane/Library".
 var noun_type_local_directory = {
   _name: "directory on local system",
   suggest: function( text, html ) {
     var suggestions = [];
     
-    // The tilde is an illegal directory name by itself, but it is legal with a trailing slash
+    // The tilde is an illegal directory name by itself, but it is legal with a
+    // trailing slash
     if (text == "~") text = "~/";
     
     // Always accept whatever the user types, even if it's an invalid directory
     suggestions.push(CmdUtils.makeSugg(text));
 
-    // Break the directory up into everything before and including the slash, and everything after the last slash
+    // Break the directory up into everything before and including the slash, and
+    // everything after the last slash
     var parts = text.match(/^(.*\/)([^\/]*)$/);
     if (parts) {
       // The first part is the path
       var path = parts[1];
-      // Everything after the last slash becomes a "possible" completion, depending on subdirectory names
+      // Everything after the last slash becomes a "possible" completion, depending on
+      // subdirectory names
       var possible = parts[2];
       
       try {
@@ -81,7 +87,16 @@ var noun_type_local_directory = {
   }
 }
 
-var SaveAll = {
+var DownloadFiles = {
+  // Given a javascript object with keys and values, return just the keys. In other words, use the
+  // keys as a "set" so we don't have to do it ourselves.
+  listFromSet: function(obj) {
+    var newList = [];
+    for (k in obj) newList.push(k);
+    return newList;
+  },
+  
+  // Returns true if a folder exists on the local file system, false otherwise
   folderExists: function(path) {
     try {
       var folder = Components.
@@ -130,8 +145,9 @@ var SaveAll = {
     }
   },
   
-  // Looks for 'pattern' within the current page's HTML.  For example, searches 'a' tags and 'link' tags for 'href'
-  // attributes, and searches 'img', 'script', and 'iframe' tags for 'src' attributes.  A list of matching URLs is returned.
+  // Looks for 'pattern' within the current page's HTML.  For example, searches 'a' tags
+  // and 'link' tags for 'href' attributes, and searches 'img', 'script', and 'iframe'
+  // tags for 'src' attributes.  A list of matching URLs is returned.
   matchFiles: function(pattern) {
     if (!pattern) pattern = "";
     var doc = Application.activeWindow.activeTab.document;
@@ -139,38 +155,28 @@ var SaveAll = {
     files = files.concat(jQuery("a,link", doc.body).map(function() { return this.getAttribute("href"); }).get());
     files = files.concat(jQuery("img,script,iframe", doc.body).map(function() { return this.getAttribute("src"); }).get());
     var matchedSet = {};
-    try {
-      for (i in files) {
-        var file = files[i];
-        if (file.match(pattern)) {
-          matchedSet[file] = true;
-        }
+    for (i in files) {
+      var file = files[i];
+      if (file.match(pattern)) {
+        matchedSet[file] = true;
       }
-    } catch(e) {
-      
     }
-    var matchedList = [];
-    for (file in matchedSet) {
-      matchedList.push(file);
-    }
-    return matchedList;
+    return DownloadFiles.listFromSet(matchedSet);
   },
   
-  // Finds unique file extensions from the list of all URLs produced from matchFiles().  Returns the list, e.g. ["gif", "js"]
+  // Finds unique file extensions from the list of all URLs produced from matchFiles().
+  // Returns the list, e.g. ["gif", "js"]
   uniqueExtensions: function() {
-    var files = SaveAll.matchFiles();
+    var files = DownloadFiles.matchFiles();
     // Use an object's keys to maintain a unique list
     var extSet = {};
     for (i in files) {
       if (files[i]) {
-        var ext = SaveAll.extFromURL(files[i]);
+        var ext = DownloadFiles.extFromURL(files[i]);
         if (ext) extSet[ext] = true;
       }
     }
-    // Turn the object into an array
-    var exts = [];
-    for (j in extSet) exts.push(j);
-    return exts;
+    return DownloadFiles.listFromSet(extSet);
   },
   
   // Given a url string, returns a file extension if possible (e.g. "gif" or "jpg")
@@ -182,15 +188,17 @@ var SaveAll = {
     else   return false;
   },
   
-  // Given a url string, returns the "leaf" part of the path, e.g. "http://mysite.com/files/blah.jpg" becomes "blah.jpg"
+  // Given a url string, returns the "leaf" part of the path,
+  //   e.g. "http://mysite.com/files/blah.jpg" becomes "blah.jpg"
   fileFromURL: function(url) {
     var m = url.match(/\/([^\/]*)$/);
     if (m) return m[1];
     else   return url;
   },
   
-  // Given a url string and an nsIFile 'folder' object that points to a local directory, download the thing to the folder.
-  saveFile: function(file_url, folder) {
+  // Given a url string and an nsIFile 'folder' object that points to a local
+  // directory, download the thing to the folder.
+  downloadFile: function(file_url, folder) {
     try {
       var doc = Application.activeWindow.activeTab.document;
       var current = Utils.url(doc.documentURI);
@@ -198,7 +206,7 @@ var SaveAll = {
 
       // New file object & new file if necessary
       var target_file = folder.clone();
-      target_file.append(SaveAll.fileFromURL(file_url));
+      target_file.append(DownloadFiles.fileFromURL(file_url));
       if(!target_file.exists()) { target_file.create(0x00, 0644); }
       
       //new persitence object
@@ -225,43 +233,70 @@ CmdUtils.CreateCommand({
   takes: {"pattern": noun_type_file_extension_from_page},
   modifiers: {"to": noun_type_local_directory},
   preview: function( pblock, pattern, mods ) {
-    if (pattern.text) {
-      var path = mods["to"].text;
-      
-      // Hackish way of telling our noun_type_file_extension_from_page to stop suggesting things once a folder is specified
-      if (path) use_file_extension = true;
-      else      use_file_extension = false;
-      
-      var template = "<p>Download files matching /${pattern}/${dest}</p><ul'>${list}</ul>";
-      var matchList ="<ul>";
-      fileUrls = SaveAll.matchFiles(pattern.text);
-      for (i in fileUrls) {
-        matchList += "<li>" + unescape( SaveAll.fileFromURL(fileUrls[i])) + "</li>"; /* I prefere to see only the file name and not the whole URL */
-      }
-      matchList +="</ul>";
-
-      var folderHtml =
-        "<p><img src='http://inquirylabs.com/downloads/folder" + (SaveAll.folderExists(path) ? "" : "-x") + ".png'" +
-        " align='absmiddle' /> " + mods["to"].html + "</p>";
-      pblock.innerHTML = CmdUtils.renderTemplate(template,
-        {
-          "pattern": pattern.html,
-          "dest": path ? folderHtml : "",
-          "list": matchList
-        });
-    } else {
+    if (!pattern.text) {
       pblock.innerHTML = "<p>Downloads all files matching the given pattern.</p>";
+      return;
     }
+    
+    var template = "<p>Download files matching /${pattern}/${dest}</p><ul>${list}</ul>";
+    var path = mods["to"].text;
+    var folderHtml = "";
+    var matchList = "";
+    
+    if (path) {
+      // Take care of the folder icon.  It should be "x"ed out if the destination does not exist
+      folderHtml =
+        "<p><img src='http://inquirylabs.com/downloads/folder" +
+        (DownloadFiles.folderExists(path) ? "" : "-x") + ".png'" +
+        " align='absmiddle' /> " + mods["to"].html + "</p>";
+      // Hackish way of telling our noun_type_file_extension_from_page to
+      // stop suggesting things once a folder is specified
+      use_file_extension = true;
+    } else {
+      use_file_extension = false;
+    }
+    
+    try {
+      fileUrls = DownloadFiles.matchFiles(pattern.text);
+    } catch(e) {
+      fileUrls = false;
+    }
+    
+    if (fileUrls === false) {
+      template = "<p>Download files matching [Incorrectly Formatted Regular Expression]</p>";
+    } else if (fileUrls.length == 0) {
+      template = "<p>No files match the regular expression /${pattern}/</p>";
+    } else if (fileUrls.length > 0) {
+      for (i in fileUrls) {
+        var url = fileUrls[i];
+        var filename = DownloadFiles.fileFromURL(url);
+        var span = "&nbsp;&nbsp;<span style='color:#888'>" + unescape( url ) + "</span>";
+      
+        // Show the filename first, then the URL in grey if it is different than the filename
+        matchList +=
+          "<li style='width:1000em'>" +
+            (filename == "" ? url : unescape( filename )) +
+            (filename == url ? "" : span) +
+          "</li>";
+      }
+    }
+    
+    // Finally, display the template with our substitutions
+    pblock.innerHTML = CmdUtils.renderTemplate(template, {
+      "pattern": pattern.html,
+      "dest": path ? folderHtml : "",
+      "list": matchList
+    });
   },
   execute: function(pattern, mods) {
-    var folder = SaveAll.getFolder(mods["to"].text);
+    var folder = DownloadFiles.getFolder(mods["to"].text);
     if (folder) {
       // displayMessage("Downloading to " + folder.path);
-      fileUrls = SaveAll.matchFiles(pattern.text);
+      fileUrls = DownloadFiles.matchFiles(pattern.text);
       // CmdUtils.log("Matched files: ", fileUrls);
       var succeeded = 0;
       for (i in fileUrls) {
-        if (SaveAll.saveFile(fileUrls[i], folder)) succeeded += 1;
+        if (DownloadFiles.downloadFile(fileUrls[i], folder)) succeeded += 1;
       }
       if (succeeded > 0) {
         if (succeeded == fileUrls.length)
