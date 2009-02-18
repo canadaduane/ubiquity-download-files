@@ -284,7 +284,7 @@ CmdUtils.CreateCommand({
     // Finally, display the template with our substitutions
     pblock.innerHTML = CmdUtils.renderTemplate(template, {
       "pattern": pattern.html,
-      "dest": path ? folderHtml : "",
+      "dest": folderHtml,
       "list": matchList
     });
   },
