@@ -269,7 +269,7 @@ CmdUtils.CreateCommand({
   author: { name: "Duane Johnson", email: "duane.johnson@gmail.com"},
   license: "MIT",
   description: "Downloads all files of the given pattern to your computer.",
-  help: "e.g. download-files png$ ~/Desktop/Images",
+  help: "e.g. download-files png$ to ~/Desktop/Images",
   takes: {"pattern": noun_type_file_extension_from_page},
   modifiers: {"to": noun_type_local_directory},
   preview: function( pblock, pattern, mods ) {
